@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from store_jobs import save_jobs, create_tables
 
 load_dotenv()
 
@@ -24,10 +25,25 @@ def fetch_jobs(keywords="software engineer", location="canada", results_per_page
     return response.json()
 
 if __name__ == "__main__":
-    data = fetch_jobs(keywords="data analyst")
+    create_tables()
+    searches = [
+        "data analyst",
+        "machine learning engineer",
+        "data scientist",
+        "ML engineer",
+        "data engineer",
+        "software engineer",
+        "software developer",
+        "qa analyst",
+        "qa automation"
+    ]
+    for keyword in searches:
+        print(f"\nFetching: {keyword}")
+        data = fetch_jobs(keywords=keyword, results_per_page=50)
+        save_jobs(data["results"])
     
     print(f"Total jobs found: {data['count']}")
-    print("-" * 40)
+    save_jobs(data["results"])     
     
     for job in data["results"][:3]:
         print(f"Title:    {job['title']}")
