@@ -3,7 +3,7 @@ import json
 import re
 import psycopg2
 from dotenv import load_dotenv
-from supabase import get_client
+from store_jobs import get_client
 
 load_dotenv()
 
