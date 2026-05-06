@@ -1,9 +1,12 @@
-import sqlite3
 import os
 import json
 import re
+import psycopg2
+from dotenv import load_dotenv
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "../data/jobs.db")
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 #comprehensive skill taxonomy (gen'd by AI)
 SKILL_TAXONOMY = {
@@ -173,21 +176,10 @@ def extract_skills_from_text(text: str) -> list:
     return sorted(list(found))
 
 def process_all_jobs():
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
-    #add skills column if it doesn't exist yet
-    try:
-        cursor.execute("ALTER TABLE jobs ADD COLUMN skills TEXT")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-
-    #reset all so they get re-extracted with updated taxonomy (dev work)
-    cursor.execute("UPDATE jobs SET skills = NULL")
-    conn.commit()
-
-    #get all of the unprocessed jobs to process
+    #only process jobs that havent been skill-extracted yet
     cursor.execute("SELECT id, description FROM jobs WHERE skills IS NULL")
     jobs = cursor.fetchall()
 
@@ -197,21 +189,26 @@ def process_all_jobs():
         skills = extract_skills_from_text(description)
         skills_json = json.dumps(skills)
         cursor.execute(
-            "UPDATE jobs SET skills = ? WHERE id = ?",
+            "UPDATE jobs SET skills = %s WHERE id = %s",
             (skills_json, job_id)
         )
 
     conn.commit()
+    cursor.close()
     conn.close()
     print("Done. Skills extracted and saved.")
 
 #gets the occurrences of each of the skills to get frequency
-def get_skill_frequency():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT skills FROM jobs WHERE skills IS NOT NULL")
-    rows = cursor.fetchall()
-    conn.close()
+def get_skill_frequency(jobs_data=None):
+    if jobs_data is None:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("SELECT skills FROM jobs WHERE skills IS NOT NULL")
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    else:
+        rows = [(row,) for row in jobs_data]
 
     frequency = {}
     for (skills_json,) in rows:

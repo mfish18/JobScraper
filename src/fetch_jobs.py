@@ -1,5 +1,4 @@
 import requests
-import json
 import os
 from dotenv import load_dotenv
 from store_jobs import save_jobs, create_tables
@@ -20,12 +19,14 @@ def fetch_jobs(keywords="software engineer", location="canada", results_per_page
         "where": location,
         "content-type": "application/json"
     }
+
     response = requests.get(url, params=params)
     response.raise_for_status()
     return response.json()
 
 if __name__ == "__main__":
     create_tables()
+
     searches = [
         "data analyst",
         "machine learning engineer",
@@ -37,18 +38,16 @@ if __name__ == "__main__":
         "qa analyst",
         "qa automation"
     ]
+
+    total_saved = 0
+    total_skipped = 0
+
     for keyword in searches:
         print(f"\nFetching: {keyword}")
         data = fetch_jobs(keywords=keyword, results_per_page=50)
-        save_jobs(data["results"])
-    
-    print(f"Total jobs found: {data['count']}")
-    save_jobs(data["results"])     
-    
-    for job in data["results"][:3]:
-        print(f"Title:    {job['title']}")
-        print(f"Company:  {job.get('company', {}).get('display_name', 'N/A')}")
-        print(f"Location: {job.get('location', {}).get('display_name', 'N/A')}")
-        print(f"Salary:   {job.get('salary_min', 'N/A')} - {job.get('salary_max', 'N/A')}")
-        print(f"Posted:   {job.get('created', 'N/A')}")
-        print()
+        results = data.get("results", [])
+        saved, skipped = save_jobs(results)
+        total_saved += saved
+        total_skipped += skipped
+
+    print(f"\nDone — total saved: {total_saved}, skipped: {total_skipped}")
