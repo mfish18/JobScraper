@@ -3,6 +3,7 @@ import json
 import re
 import psycopg2
 from dotenv import load_dotenv
+from supabase import get_client
 
 load_dotenv()
 
@@ -176,43 +177,33 @@ def extract_skills_from_text(text: str) -> list:
     return sorted(list(found))
 
 def process_all_jobs():
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor()
+    supabase = get_client()
 
-    #only process jobs that havent been skill-extracted yet
-    cursor.execute("SELECT id, description FROM jobs WHERE skills IS NULL")
-    jobs = cursor.fetchall()
+    result = supabase.table("jobs").select("id, description").is_("skills", "null").execute()
+    jobs = result.data
 
     print(f"Processing {len(jobs)} jobs...")
 
-    for job_id, description in jobs:
-        skills = extract_skills_from_text(description)
-        skills_json = json.dumps(skills)
-        cursor.execute(
-            "UPDATE jobs SET skills = %s WHERE id = %s",
-            (skills_json, job_id)
-        )
+    for job in jobs:
+        skills = extract_skills_from_text(job["description"])
+        supabase.table("jobs").update({"skills": skills}).eq("id", job["id"]).execute()
 
-    conn.commit()
-    cursor.close()
-    conn.close()
     print("Done. Skills extracted and saved.")
 
 #gets the occurrences of each of the skills to get frequency
 def get_skill_frequency(jobs_data=None):
     if jobs_data is None:
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-        cursor.execute("SELECT skills FROM jobs WHERE skills IS NOT NULL")
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        supabase = get_client()
+        result = supabase.table("jobs").select("skills").not_.is_("skills", "null").execute()
+        rows = [row["skills"] for row in result.data]
     else:
-        rows = [(row,) for row in jobs_data]
+        rows = jobs_data
 
     frequency = {}
-    for (skills_json,) in rows:
-        skills = json.loads(skills_json)
+    for skills in rows:
+        if isinstance(skills, str):
+            import json
+            skills = json.loads(skills)
         for skill in skills:
             frequency[skill] = frequency.get(skill, 0) + 1
 
