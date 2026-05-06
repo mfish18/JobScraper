@@ -2,8 +2,6 @@ import sys
 import os
 import logging
 from datetime import datetime
-from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
@@ -64,24 +62,6 @@ def run_pipeline():
     log.info("=" * 50)
 
 if __name__ == "__main__":
-    log.info("Scheduler starting up...")
-
+    log.info("Starting pipeline run...")
     run_pipeline()
-
-    scheduler = BlockingScheduler()
-
-    scheduler.add_job(
-        run_pipeline,
-        CronTrigger(hour="9,18", minute="0"),
-        id="job_pipeline",
-        name="Job market pipeline",
-        misfire_grace_time=300
-    )
-
-    log.info("Scheduler running. Pipeline fires at 9am and 6pm daily.")
-    log.info("Press Ctrl+C to stop.")
-
-    try:
-        scheduler.start()
-    except KeyboardInterrupt:
-        log.info("Scheduler stopped.")
+    log.info("Done.")
