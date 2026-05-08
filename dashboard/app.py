@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
