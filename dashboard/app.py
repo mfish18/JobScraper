@@ -1,11 +1,18 @@
-import streamlit as st
-import sqlite3
-import json
 import os
+import json
+import psycopg2
+import streamlit as st
 import pandas as pd
 import plotly.express as px
+from dotenv import load_dotenv
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "../data/jobs.db")
+load_dotenv()
+
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+def get_connection():
+    return psycopg2.connect(DATABASE_URL)
 
 st.set_page_config(
     page_title="Job Market Intelligence",
@@ -17,7 +24,7 @@ st.set_page_config(
 
 @st.cache_data
 def load_jobs():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     df = pd.read_sql_query("SELECT * FROM jobs", conn)
     conn.close()
     return df
@@ -28,8 +35,13 @@ def get_skill_frequency(df, role_filter=None):
         df = df[df["title"].str.contains(role_filter, case=False, na=False)]
 
     frequency = {}
-    for skills_json in df["skills"].dropna():
-        skills = json.loads(skills_json)
+    for skills_val in df["skills"].dropna():
+        #handle both string (sqlite) and list (postgresql) formats
+        if isinstance(skills_val, str):
+            skills = json.loads(skills_val)
+        else:
+            skills = skills_val
+
         for skill in skills:
             frequency[skill] = frequency.get(skill, 0) + 1
 
