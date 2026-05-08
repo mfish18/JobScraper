@@ -2,6 +2,8 @@
 
 An automated pipeline that collects, processes, and visualizes Canadian job market data for data, ML, and engineering roles. Built to surface real skill demand trends and help identify gaps between a candidate's profile and the current market.
 
+![Dashboard](ss.png)
+
 ## What it does
 
 - Pulls job postings twice daily from the Adzuna API across 9 role categories (to be expanded)
